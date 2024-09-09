@@ -33,7 +33,8 @@ impl RespDecode for RespFrame {
         let mut iter = buf.iter().peekable();
         match iter.peek() {
             Some(b'+') => {
-                todo!()
+                let frame = SimpleString::decode(buf)?;
+                Ok(frame.into())
             }
             Some(b'-') => {
                 let frame = SimpleError::decode(buf)?;
@@ -85,6 +86,7 @@ impl RespDecode for RespFrame {
                 let frame = RespSet::decode(buf)?;
                 Ok(frame.into())
             }
+            None => Err(RespError::NotComplete),
             _ => Err(RespError::InvalidFrameType(format!(
                 "expect_length: unknown frame type: {:?}",
                 buf
