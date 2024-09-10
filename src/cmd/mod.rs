@@ -7,6 +7,7 @@ use thiserror::Error;
 
 use crate::{Backend, RespArray, RespError, RespFrame, SimpleString};
 
+// you could also use once_cell instead of lazy_static
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
 }
@@ -37,6 +38,9 @@ pub enum Command {
     HGet(HGet),
     HSet(HSet),
     HGetAll(HGetAll),
+
+    // unrecognized command
+    Unrecognized(Unrecognized),
 }
 
 #[derive(Debug)]
@@ -68,6 +72,9 @@ pub struct HGetAll {
     key: String,
 }
 
+#[derive(Debug)]
+pub struct Unrecognized;
+
 impl TryFrom<RespFrame> for Command {
     type Error = CommandError;
 
@@ -92,15 +99,18 @@ impl TryFrom<RespArray> for Command {
                 b"hget" => Ok(HGet::try_from(v)?.into()),
                 b"hset" => Ok(HSet::try_from(v)?.into()),
                 b"hgetall" => Ok(HGetAll::try_from(v)?.into()),
-                _ => Err(CommandError::InvalidCommand(format!(
-                    "Invalid command: {}",
-                    String::from_utf8_lossy(cmd.as_ref())
-                ))),
+                _ => Ok(Unrecognized.into()),
             },
             _ => Err(CommandError::InvalidCommand(
                 "Command must have a BulkString as the first argument".to_string(),
             )),
         }
+    }
+}
+
+impl CommandExecutor for Unrecognized {
+    fn execute(self, _backend: &Backend) -> RespFrame {
+        RESP_OK.clone()
     }
 }
 
