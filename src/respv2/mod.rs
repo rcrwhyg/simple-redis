@@ -2,7 +2,7 @@ use bytes::BytesMut;
 
 use crate::{RespError, RespFrame};
 
-use parser::{parse_frame, parse_frame_length};
+pub use parser::{parse_frame, parse_frame_length};
 
 mod parser;
 
