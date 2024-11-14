@@ -5,6 +5,7 @@ use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    std::env::set_var("RUST_LOG", "info");
     tracing_subscriber::fmt::init();
 
     let addr = "0.0.0.0:6379";

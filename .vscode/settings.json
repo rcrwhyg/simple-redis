@@ -5,6 +5,7 @@
         "hgetall",
         "hmap",
         "hset",
-        "raddr"
+        "raddr",
+        "respv"
     ]
 }
