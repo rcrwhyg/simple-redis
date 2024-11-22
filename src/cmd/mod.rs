@@ -1,3 +1,4 @@
+mod echo;
 mod hmap;
 mod map;
 
@@ -33,14 +34,21 @@ pub trait CommandExecutor {
 #[enum_dispatch(CommandExecutor)]
 #[derive(Debug)]
 pub enum Command {
+    Echo(Echo),
     Get(Get),
     Set(Set),
     HGet(HGet),
+    HMGet(HMGet),
     HSet(HSet),
     HGetAll(HGetAll),
 
     // unrecognized command
     Unrecognized(Unrecognized),
+}
+
+#[derive(Debug)]
+pub struct Echo {
+    message: String,
 }
 
 #[derive(Debug)]
@@ -58,6 +66,12 @@ pub struct Set {
 pub struct HGet {
     key: String,
     field: String,
+}
+
+#[derive(Debug)]
+pub struct HMGet {
+    key: String,
+    fields: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -95,9 +109,11 @@ impl TryFrom<RespArray> for Command {
     fn try_from(v: RespArray) -> Result<Self, Self::Error> {
         match v.first() {
             Some(RespFrame::BulkString(ref cmd)) => match cmd.as_ref() {
+                b"echo" => Ok(Echo::try_from(v)?.into()),
                 b"get" => Ok(Get::try_from(v)?.into()),
                 b"set" => Ok(Set::try_from(v)?.into()),
                 b"hget" => Ok(HGet::try_from(v)?.into()),
+                b"hmget" => Ok(HMGet::try_from(v)?.into()),
                 b"hset" => Ok(HSet::try_from(v)?.into()),
                 b"hgetall" => Ok(HGetAll::try_from(v)?.into()),
                 _ => Ok(Unrecognized.into()),
@@ -125,6 +141,41 @@ fn validate_command(
             "{} command must have exactly {} argument",
             names.join(" "),
             n_args
+        )));
+    }
+
+    for (i, name) in names.iter().enumerate() {
+        match value[i] {
+            RespFrame::BulkString(ref cmd) => {
+                if cmd.as_ref().to_ascii_lowercase() != name.as_bytes() {
+                    return Err(CommandError::InvalidCommand(format!(
+                        "Invalid command: expected {}, got {}",
+                        name,
+                        String::from_utf8_lossy(cmd.as_ref())
+                    )));
+                }
+            }
+            _ => {
+                return Err(CommandError::InvalidCommand(
+                    "Command must have a BulkString as the first argument".to_string(),
+                ))
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_command_multi_args(
+    value: &RespArray,
+    names: &[&'static str],
+    min_args: usize,
+) -> Result<(), CommandError> {
+    if value.len() < min_args + names.len() {
+        return Err(CommandError::InvalidArgument(format!(
+            "{} command must have exactly least {} argument",
+            names.join(" "),
+            min_args
         )));
     }
 

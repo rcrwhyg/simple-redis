@@ -1,11 +1,12 @@
 {
-    "cSpell.words": [
-        "dashmap",
-        "hget",
-        "hgetall",
-        "hmap",
-        "hset",
-        "raddr",
-        "respv"
-    ]
+  "cSpell.words": [
+    "dashmap",
+    "hget",
+    "hgetall",
+    "hmap",
+    "hmget",
+    "hset",
+    "raddr",
+    "respv"
+  ]
 }
