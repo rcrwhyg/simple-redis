@@ -21,9 +21,9 @@ pub fn parse_frame_length(input: &[u8]) -> Result<usize, RespError> {
     match ret {
         Ok(_) => {
             // calculate the distance between target and input
-            let start = input.as_ptr();
-            let end = (*target).as_ptr();
-            let len = end as usize - start as usize;
+            let start = input.as_ptr() as usize;
+            let end = (*target).as_ptr() as usize;
+            let len = end - start;
             Ok(len)
         }
         Err(_) => Err(RespError::NotComplete),
@@ -43,7 +43,7 @@ fn parse_frame_len(input: &mut &[u8]) -> PResult<()> {
         b',' => simple_parser,
         b'%' => map_len,
         // b'~' => set,
-        _ => fail::<_, _, _>,
+        _v => fail::<_, _, _>,
     }
     .parse_next(input)
 }
@@ -61,7 +61,7 @@ pub fn parse_frame(input: &mut &[u8]) -> PResult<RespFrame> {
         b',' => double.map(RespFrame::Double),
         b'%' => map.map(RespFrame::Map),
         // b'~' => set,
-        _ => fail::<_, _, _>,
+        _v=> fail::<_, _, _>,
     }
     .parse_next(input)
 }
@@ -78,10 +78,9 @@ fn error(input: &mut &[u8]) -> PResult<SimpleError> {
 
 // - integer: ":1000\r\n"
 fn integer(input: &mut &[u8]) -> PResult<i64> {
-    let sign = opt(alt(('+', '-'))).parse_next(input)?.unwrap_or('+');
-    let sign: i64 = if sign == '+' { 1 } else { -1 };
+    let sign = opt('-').parse_next(input)?.is_some();
     let v: i64 = terminated(digit1.parse_to(), CRLF).parse_next(input)?;
-    Ok(sign * v)
+    Ok(if sign { -v } else { v })
 }
 
 // - null bulk string: "$-1\r\n"

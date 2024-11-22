@@ -10,6 +10,7 @@ pub struct Backend(Arc<BackendInner>);
 pub struct BackendInner {
     pub(crate) map: DashMap<String, RespFrame>,
     pub(crate) hmap: DashMap<String, DashMap<String, RespFrame>>,
+    pub(crate) set: DashMap<String, Vec<RespFrame>>,
 }
 
 impl Deref for Backend {
@@ -31,6 +32,7 @@ impl Default for BackendInner {
         Self {
             map: DashMap::new(),
             hmap: DashMap::new(),
+            set: DashMap::new(),
         }
     }
 }
@@ -61,5 +63,17 @@ impl Backend {
 
     pub fn hgetall(&self, key: &str) -> Option<DashMap<String, RespFrame>> {
         self.hmap.get(key).map(|v| v.clone())
+    }
+
+    pub fn sadd(&self, key: String, member: RespFrame) {
+        let mut set = self.set.entry(key).or_default();
+        set.push(member);
+    }
+
+    pub fn sismember(&self, key: &str, member: &str) -> bool {
+        self.set
+            .get(key)
+            .map(|v| v.iter().any(|m| *m == RespFrame::from(member)))
+            .unwrap_or(false)
     }
 }
